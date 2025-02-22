@@ -14,6 +14,7 @@ import com.lcwd.user.service.entities.User;
 import com.lcwd.user.service.services.UserService;
 
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -43,17 +44,24 @@ public class UserController {
 
     }
     //get single user
+    int retryCount = 1;
     @GetMapping("/{userId}")
-    @CircuitBreaker(name = "RatingHotelBreaker", fallbackMethod = "ratingHotelFallback")
+    // @CircuitBreaker(name = "RatingHotelBreaker", fallbackMethod = "ratingHotelFallback")
+    @Retry(name = "ratingHotelService", fallbackMethod = "ratingHotelFallback")
     public ResponseEntity<User> getSingleUser(@PathVariable String userId){
+ 
+        logger.info("Retry count : " + retryCount);
+        retryCount++;
 
        User user= userService.getUser(userId);
        return ResponseEntity.status(HttpStatus.OK).body(user);
     }
 
     //creating fallback method for circuitbreaker
+    
+
     public ResponseEntity<User> ratingHotelFallback(String userId, Exception ex){
-        logger.info("Fallback is executed because service is down : ",ex.getMessage());
+        //logger.info("Fallback is executed because service is down : ",ex.getMessage());
         
         User user = User.builder()
                         .email("dummy@gmail.com")
